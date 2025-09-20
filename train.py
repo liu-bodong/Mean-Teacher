@@ -146,7 +146,8 @@ def train_epoch(model, train_loader, optimizer, device, consistency_weight=1.0):
     total = 0
     
     # Add progress bar for batches    
-    for batch_idx, (images, labels) in tqdm(train_loader, desc="Training", leave=False):
+    pbar = tqdm(train_loader, desc="Training", leave=False)
+    for batch_idx, (images, labels) in enumerate(pbar):
         images, labels = images.to(device), labels.to(device)
         
         # Apply different augmentations to the same batch
@@ -280,7 +281,7 @@ if __name__ == "__main__":
         epoch_pbar.set_description(f"Epoch {epoch+1}/{num_epochs}")
         
         # Train
-        train_loss, class_loss, consistency_loss, train_acc = train_epoch(
+        train_loss, class_loss, consistency_loss_val, train_acc = train_epoch(
             model, train_loader, optimizer, device, consistency_weight
         )
         
@@ -299,7 +300,7 @@ if __name__ == "__main__":
         
         print(f"\nEpoch [{epoch+1}/{num_epochs}] Results:")
         print(f"Train Loss: {train_loss:.4f}, Class Loss: {class_loss:.4f}, "
-              f"Consistency Loss: {consistency_loss:.4f}")
+              f"Consistency Loss: {consistency_loss_val:.4f}")
         print(f"Train Acc: {train_acc:.2f}%, Test Acc: {test_acc:.2f}%")
         
         # Save best model
