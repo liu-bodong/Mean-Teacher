@@ -29,7 +29,7 @@ class StanfordDogsDataset(Dataset):
         
         # Create class mapping
         for idx, breed_dir in enumerate(breed_dirs):
-            breed_name = breed_dir.name.split('-', 1)[1]  # Remove n02... prefix
+            breed_name = breed_dir.name.split('-', 1)[1]  # Remove prefix
             self.class_to_idx[breed_name] = idx
         
         # Load all images and labels
@@ -70,16 +70,17 @@ class MeanTeacherModel:
         self.ema_decay = ema_decay
         
         # Create student and teacher models
-        self.student = models.resnet18(pretrained=True)
+        weights = ResNet18_Weights.DEFAULT
+        self.student = models.resnet18(weights)
         self.student.fc = nn.Linear(self.student.fc.in_features, num_classes)
-        
-        self.teacher = models.resnet18(pretrained=True)
+
+        self.teacher = models.resnet18(weights)
         self.teacher.fc = nn.Linear(self.teacher.fc.in_features, num_classes)
         
         # Initialize teacher with student weights
         self.teacher.load_state_dict(self.student.state_dict())
         
-        # Freeze teacher (no gradient updates)
+        # Freeze teacher
         for param in self.teacher.parameters():
             param.requires_grad = False
     
@@ -134,7 +135,7 @@ def consistency_loss(student_logits, teacher_logits, temperature=1.0):
     return F.mse_loss(student_probs, teacher_probs)
 
 
-def train_epoch(model, train_loader, optimizer, device, consistency_weight=1.0):
+def train_teacher_model(model, train_loader, optimizer, device, consistency_weight=1.0):
     """Train for one epoch using Mean Teacher"""
     model.student.train()
     model.teacher.eval()
@@ -281,7 +282,7 @@ if __name__ == "__main__":
         epoch_pbar.set_description(f"Epoch {epoch+1}/{num_epochs}")
         
         # Train
-        train_loss, class_loss, consistency_loss_val, train_acc = train_epoch(
+        train_loss, class_loss, consistency_loss_val, train_acc = train_teacher_model(
             model, train_loader, optimizer, device, consistency_weight
         )
         
